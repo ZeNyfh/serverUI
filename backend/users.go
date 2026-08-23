@@ -1,0 +1,80 @@
+package main
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"strings"
+
+	"golang.org/x/crypto/bcrypt"
+	_ "modernc.org/sqlite"
+)
+
+var ErrUsernameTaken = errors.New("username is already in use")
+
+type userStore struct {
+	db *sql.DB
+}
+
+func openUserStore(path string) (*userStore, error) {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL
+		)
+	`)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return &userStore{db: db}, nil
+}
+
+func (s *userStore) close() error {
+	return s.db.Close()
+}
+
+func (s *userStore) createUser(ctx context.Context, username, password string) (int64, error) {
+	username = strings.TrimSpace(username)
+	if username == "" || password == "" {
+		return 0, errors.New("username and password are required")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return 0, err
+	}
+
+	result, err := s.db.ExecContext(ctx,
+		"INSERT INTO users (username, password_hash) VALUES (?, ?)", username, string(hash))
+	if err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		return 0, ErrUsernameTaken
+	}
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
+func (s *userStore) authenticate(ctx context.Context, username, password string) (int64, error) {
+	var (
+		id   int64
+		hash string
+	)
+	err := s.db.QueryRowContext(ctx,
+		"SELECT id, password_hash FROM users WHERE username = ?", strings.TrimSpace(username)).Scan(&id, &hash)
+	if err != nil {
+		return 0, err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
