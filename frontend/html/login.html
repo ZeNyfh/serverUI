@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>serverUI Login</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body class="login-page">
+    <main class="auth-panel">
+      <h1>serverUI</h1>
+      <form id="auth-form">
+        <label>Username <input id="username" required /></label>
+        <label>Password <input id="password" type="password" required /></label>
+        <button id="submit-button" type="submit">Log in</button>
+      </form>
+      <button id="switch-button" type="button">Create an account</button>
+      <p id="message" aria-live="polite"></p>
+    </main>
+    <script src="/js/login.js"></script>
+  </body>
+</html>
