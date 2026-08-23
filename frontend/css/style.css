@@ -12,7 +12,9 @@ body {
 aside {
   width: 12.5vw;
   min-height: 100vh;
-  border: 1px solid black;
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+  border-left: 1px solid black;
 }
 
 header {
@@ -20,9 +22,28 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid black;
+  border-bottom: 1px solid black;
 }
 
 main {
   width: 87.5vw;
+}
+
+.login-page {
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-panel {
+  width: 20rem;
+}
+
+.auth-panel form,
+.auth-panel label {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.auth-panel form {
+  margin: 1rem 0;
 }
