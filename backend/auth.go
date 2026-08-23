@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"log"
 	"net/http"
 	"sync"
 )
@@ -44,46 +43,6 @@ func (a *app) rootHandler(w http.ResponseWriter, r *http.Request) {
 		page = "frontend/html/index.html"
 	}
 	http.ServeFile(w, r, page)
-}
-
-func (a *app) loginHandler(w http.ResponseWriter, r *http.Request) {
-	var input credentials
-	if !decodeCredentials(w, r, &input) {
-		log.Println("login failed")
-		return
-	}
-
-	userID, err := a.users.authenticate(r.Context(), input.Username, input.Password)
-	if err != nil {
-		log.Println("login failed")
-		http.Error(w, "login failed", http.StatusUnauthorized)
-		return
-	}
-	if _, allowed := a.allowed[userID]; !allowed {
-		log.Println("login failed")
-		http.Error(w, "login failed", http.StatusForbidden)
-		return
-	}
-
-	token, err := newSessionToken()
-	if err != nil {
-		log.Println("login failed")
-		http.Error(w, "could not create session", http.StatusInternalServerError)
-		return
-	}
-
-	a.mu.Lock()
-	a.sessions[token] = userID
-	a.mu.Unlock()
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func newSessionToken() (string, error) {
