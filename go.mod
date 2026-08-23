@@ -1,4 +1,4 @@
-module serverui
+module lentron
 
 go 1.24.0
 
