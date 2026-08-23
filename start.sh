@@ -2,5 +2,5 @@
 
 set -e
 
-go build -o server ./backend/main.go
+go build -o server ./backend
 exec ./server
