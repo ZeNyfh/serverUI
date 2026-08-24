@@ -43,6 +43,14 @@ aside {
   border: 0;
   text-align: left;
   cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.sidebar-item:hover,
+.sidebar-item:focus-visible {
+  background: #eee;
+  transform: translateX(0.15rem);
 }
 
 .sidebar-item img {
