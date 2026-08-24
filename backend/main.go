@@ -25,8 +25,12 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/users", users.createUserHandler)
 	mux.HandleFunc("POST /api/login", app.loginHandler)
+	mux.HandleFunc("GET /api/me", app.currentUserHandler)
+	mux.HandleFunc("PUT /api/account", app.updateAccountHandler)
+	mux.HandleFunc("GET /settings.html", app.settingsHandler)
 	mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("frontend/css"))))
 	mux.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("frontend/js"))))
+	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("frontend/assets"))))
 	mux.HandleFunc("/", app.rootHandler)
 
 	port := os.Getenv("PORT")
