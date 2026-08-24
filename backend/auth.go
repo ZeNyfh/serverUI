@@ -15,20 +15,25 @@ type app struct {
 }
 
 func (a *app) isAuthenticated(r *http.Request) bool {
+	_, ok := a.currentUserID(r)
+	return ok
+}
+
+func (a *app) currentUserID(r *http.Request) (int64, bool) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
-		return false
+		return 0, false
 	}
 
 	a.mu.RLock()
 	userID, ok := a.sessions[cookie.Value]
 	a.mu.RUnlock()
 	if !ok {
-		return false
+		return 0, false
 	}
 
 	_, allowed := a.allowed[userID]
-	return allowed
+	return userID, allowed
 }
 
 func (a *app) rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +48,16 @@ func (a *app) rootHandler(w http.ResponseWriter, r *http.Request) {
 		page = "frontend/html/index.html"
 	}
 	http.ServeFile(w, r, page)
+}
+
+func (a *app) settingsHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.isAuthenticated(r) {
+		http.Error(w, "login failed", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Cache-Control", "no-store")
+	http.ServeFile(w, r, "frontend/html/settings.html")
 }
 
 func newSessionToken() (string, error) {
