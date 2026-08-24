@@ -34,8 +34,42 @@ func openUserStore(path string) (*userStore, error) {
 		db.Close()
 		return nil, err
 	}
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS sessions (
+			token_hash TEXT PRIMARY KEY,
+			user_id INTEGER NOT NULL REFERENCES users(id),
+			created_at INTEGER NOT NULL,
+			expires_at INTEGER NOT NULL,
+			last_seen INTEGER NOT NULL,
+			revoked_at INTEGER
+		)
+	`)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 
 	return &userStore{db: db}, nil
+}
+
+func (s *userStore) createSession(ctx context.Context, tokenHash string, userID int64, createdAt, expiresAt int64) error {
+	_, err := s.db.ExecContext(ctx, `INSERT INTO sessions (token_hash, user_id, created_at, expires_at, last_seen) VALUES (?, ?, ?, ?, ?)`, tokenHash, userID, createdAt, expiresAt, createdAt)
+	return err
+}
+
+func (s *userStore) sessionUserID(ctx context.Context, tokenHash string, now int64) (int64, bool) {
+	var userID int64
+	err := s.db.QueryRowContext(ctx, `SELECT user_id FROM sessions WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?`, tokenHash, now).Scan(&userID)
+	if err != nil {
+		return 0, false
+	}
+	_, _ = s.db.ExecContext(ctx, `UPDATE sessions SET last_seen = ? WHERE token_hash = ?`, now, tokenHash)
+	return userID, true
+}
+
+func (s *userStore) revokeSession(ctx context.Context, tokenHash string, now int64) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL`, now, tokenHash)
+	return err
 }
 
 func (s *userStore) close() error {
