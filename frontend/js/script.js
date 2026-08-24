@@ -211,7 +211,6 @@ async function loadAccount() {
   const account = await response.json();
   username.textContent = account.username;
   if (settingsUsername) settingsUsername.value = account.username;
-  loadProfileImage();
 }
 
 function loadProfileImage() {
@@ -243,6 +242,7 @@ async function showSettings() {
   document.querySelector("#settings-form").addEventListener("submit", updateAccount);
   document.querySelector("#profile-image-form").addEventListener("submit", uploadProfileImage);
   loadAccount();
+  loadProfileImage();
 }
 
 async function updateAccount(event) {
@@ -290,7 +290,7 @@ async function initialize() {
   renderItems();
   settingsButton.addEventListener("click", showSettings);
   logoutButton.addEventListener("click", logout);
-  await loadAccount();
+  await Promise.all([loadAccount(), loadProfileImage()]);
 }
 
 initialize();

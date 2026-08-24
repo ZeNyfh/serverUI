@@ -10,6 +10,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -186,9 +187,18 @@ func (a *app) consoleSessionsHandler(w http.ResponseWriter, r *http.Request) {
 	sessions := make([]consoleSession, 0)
 	for _, name := range strings.Fields(string(output)) {
 		if tmuxSessionName.MatchString(name) {
-			sessions = append(sessions, consoleSession{Name: name, Preview: captureTmuxPreview(client, name)})
+			sessions = append(sessions, consoleSession{Name: name})
 		}
 	}
+	var previews sync.WaitGroup
+	for index := range sessions {
+		previews.Add(1)
+		go func(index int) {
+			defer previews.Done()
+			sessions[index].Preview = captureTmuxPreview(client, sessions[index].Name)
+		}(index)
+	}
+	previews.Wait()
 	log.Printf("console access permitted: user_id=%d machine_id=%s", userID, a.ssh.machineID)
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(sessions)

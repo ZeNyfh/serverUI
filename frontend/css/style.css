@@ -357,6 +357,19 @@ body:not(.login-page) main {
   width: 20rem;
 }
 
+.login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.login-brand img {
+  width: 1.35em;
+  height: 1.35em;
+  object-fit: cover;
+}
+
 .auth-panel form,
 .auth-panel label {
   display: grid;
