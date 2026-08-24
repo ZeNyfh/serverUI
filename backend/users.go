@@ -11,6 +11,7 @@ import (
 )
 
 var ErrUsernameTaken = errors.New("username is already in use")
+var ErrCurrentPassword = errors.New("current password is incorrect")
 
 type userStore struct {
 	db *sql.DB
@@ -77,4 +78,45 @@ func (s *userStore) authenticate(ctx context.Context, username, password string)
 		return 0, err
 	}
 	return id, nil
+}
+
+func (s *userStore) username(ctx context.Context, id int64) (string, error) {
+	var username string
+	err := s.db.QueryRowContext(ctx, "SELECT username FROM users WHERE id = ?", id).Scan(&username)
+	return username, err
+}
+
+func (s *userStore) updateAccount(ctx context.Context, id int64, username, currentPassword, newPassword string) error {
+	var existingUsername, existingHash string
+	err := s.db.QueryRowContext(ctx,
+		"SELECT username, password_hash FROM users WHERE id = ?", id).Scan(&existingUsername, &existingHash)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(existingHash), []byte(currentPassword)); err != nil {
+		return ErrCurrentPassword
+	}
+
+	username = strings.TrimSpace(username)
+	if username == "" {
+		username = existingUsername
+	}
+	passwordHash := existingHash
+	if newPassword != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		passwordHash = string(hash)
+	}
+	if username == existingUsername && passwordHash == existingHash {
+		return errors.New("no account changes provided")
+	}
+
+	_, err = s.db.ExecContext(ctx,
+		"UPDATE users SET username = ?, password_hash = ? WHERE id = ?", username, passwordHash, id)
+	if err != nil && strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		return ErrUsernameTaken
+	}
+	return err
 }
