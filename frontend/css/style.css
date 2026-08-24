@@ -285,6 +285,7 @@ body:not(.login-page) main {
 
 .beszel-card span {
   color: #222;
+  -webkit-text-stroke: 2px white;
 }
 
 .openwebui-card {
@@ -303,6 +304,7 @@ body:not(.login-page) main {
 
 .immich-card span {
   color: #222;
+  -webkit-text-stroke: 2px white;
 }
 
 .sidebar-footer {
