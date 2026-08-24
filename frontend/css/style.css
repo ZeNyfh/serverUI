@@ -2,11 +2,19 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   display: flex;
   font-family: sans-serif;
+}
+
+body:not(.login-page) {
+  overflow: hidden;
 }
 
 aside {
@@ -67,8 +75,11 @@ header {
   object-fit: cover;
 }
 
-main {
+body:not(.login-page) main {
   width: 87.5vw;
+  min-height: 100vh;
+  min-width: 0;
+  overflow: hidden;
 }
 
 #cards-container {
@@ -76,6 +87,119 @@ main {
   grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
   gap: 1rem;
   padding: 1rem;
+}
+
+#cards-container.console-active {
+  height: 100vh;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.console-view {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 2rem);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.console-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.console-sessions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.console-sessions button {
+  min-width: 12rem;
+  min-height: 8rem;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.console-session-card {
+  width: 18rem;
+  /* The title bar sits above the preview, whose usable area is 16:9. */
+  aspect-ratio: 10 / 7;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #999;
+  background: #111;
+}
+
+.session-title {
+  width: 100%;
+  border: 0;
+  padding: 0.4rem 0.6rem;
+  background: white;
+  color: #222;
+  font: inherit;
+  font-weight: 600;
+}
+
+.session-title:focus {
+  outline: 2px solid #4b83d0;
+  outline-offset: -2px;
+}
+
+.terminal-preview {
+  width: 100%;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  flex: 1;
+  overflow: hidden;
+  border: 0;
+  padding: 0.6rem;
+  background: #111;
+  color: #d9d9d9;
+  font-family: monospace;
+  line-height: 1.2;
+  text-align: left;
+  white-space: pre;
+}
+
+.terminal-preview:hover,
+.terminal-preview:focus-visible {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.start-session {
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  background: #f4f4f4;
+}
+
+.console-sessions button:hover,
+.console-sessions button:focus-visible,
+.item-card:hover,
+.item-card:focus-visible {
+  transform: scale(1.03);
+  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 25%);
+}
+
+#terminal {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  padding: 0;
+  background: #111;
 }
 
 .item-card {
@@ -88,6 +212,7 @@ main {
   font: inherit;
   font-size: 1.5rem;
   cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
 }
 
 .item-card::before {

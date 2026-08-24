@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"time"
 )
 
 type credentials struct {
@@ -19,6 +20,10 @@ type accountUpdate struct {
 }
 
 func (s *userStore) createUserHandler(w http.ResponseWriter, r *http.Request) {
+	if !sameOrigin(r) {
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
 	var input credentials
 	if !decodeCredentials(w, r, &input) {
 		return
@@ -38,6 +43,10 @@ func (s *userStore) createUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) loginHandler(w http.ResponseWriter, r *http.Request) {
+	if !sameOrigin(r) {
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
 	var input credentials
 	if !decodeCredentials(w, r, &input) {
 		log.Println("login failed")
@@ -63,17 +72,27 @@ func (a *app) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.mu.Lock()
-	a.sessions[token] = userID
-	a.mu.Unlock()
+	now := time.Now()
+	if err := a.users.createSession(r.Context(), hashSessionToken(token), userID, now.Unix(), now.Add(a.sessionTTL).Unix()); err != nil {
+		log.Printf("could not create session for user %d: %v", userID, err)
+		http.Error(w, "login failed", http.StatusInternalServerError)
+		return
+	}
+	a.setSessionCookie(w, r, token)
+	log.Printf("user authenticated: user_id=%d", userID)
+	w.WriteHeader(http.StatusNoContent)
+}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
+func (a *app) logoutHandler(w http.ResponseWriter, r *http.Request) {
+	if !sameOrigin(r) {
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
+	cookie, err := r.Cookie("session")
+	if err == nil && cookie.Value != "" {
+		_ = a.users.revokeSession(r.Context(), hashSessionToken(cookie.Value), time.Now().Unix())
+	}
+	clearSessionCookie(w, r)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -95,6 +114,10 @@ func (a *app) currentUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) updateAccountHandler(w http.ResponseWriter, r *http.Request) {
+	if !sameOrigin(r) {
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
 	userID, ok := a.currentUserID(r)
 	if !ok {
 		http.Error(w, "login failed", http.StatusUnauthorized)

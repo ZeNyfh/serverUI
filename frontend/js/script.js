@@ -5,12 +5,16 @@ const cardsContainer = document.querySelector("#cards-container");
 let settingsPanel;
 let settingsUsername;
 let settingsMessage;
+let terminal;
+let terminalSocket;
+let terminalFit;
+let terminalResizeObserver;
 
 const items = [
   {
-    id: "placeholder",
-    name: "Placeholder",
-    image: "/assets/placeholder.png",
+    id: "console",
+    name: "Console",
+    image: "/assets/console.svg",
   },
 ];
 
@@ -40,8 +44,144 @@ function renderItems() {
 }
 
 function selectItem(itemID) {
-  void itemID;
+  if (itemID === "console") showConsole();
 }
+
+async function showConsole() {
+  cardsContainer.classList.add("console-active");
+  cardsContainer.innerHTML = `<section class="console-view"><div class="console-toolbar"><button id="console-back" type="button">Back</button><strong>Console</strong></div><p id="console-status"></p><div id="console-sessions" class="console-sessions"></div><div id="terminal" hidden></div></section>`;
+  document.querySelector("#console-back").addEventListener("click", () => {
+    if (terminal) {
+      closeTerminal();
+      showConsole();
+      return;
+    }
+    cardsContainer.classList.remove("console-active");
+    renderItems();
+  });
+  loadConsoleSessions();
+}
+
+async function loadConsoleSessions() {
+  const status = document.querySelector("#console-status");
+  const sessions = document.querySelector("#console-sessions");
+  status.textContent = "Loading tmux sessions…";
+  try {
+    const response = await fetch("/api/console/sessions", { method: "POST" });
+    if (!response.ok) throw new Error(await response.text());
+    const tmuxSessions = await response.json();
+    if (tmuxSessions.length === 0) {
+      status.textContent = "No tmux sessions found. Start a new one:";
+      renderSessionCards(sessions, []);
+      return;
+    }
+    status.textContent = "Choose a tmux session or start a new one:";
+    renderSessionCards(sessions, tmuxSessions);
+  } catch (error) {
+    status.textContent = `Could not connect to SSH: ${error.message}`;
+  }
+}
+
+function renderSessionCards(container, tmuxSessions) {
+  container.replaceChildren();
+  tmuxSessions.forEach((session) => {
+    const card = document.createElement("article");
+    card.className = "console-session-card";
+    const title = document.createElement("input");
+    title.className = "session-title";
+    title.value = session.name;
+    title.dataset.session = session.name;
+    title.setAttribute("aria-label", `Rename tmux session ${session.name}`);
+    const preview = document.createElement("button");
+    preview.className = "terminal-preview";
+    preview.type = "button";
+    preview.innerHTML = new AnsiUp().ansi_to_html(session.preview || "No terminal output available");
+    preview.addEventListener("click", () => openTerminal(title.dataset.session));
+    title.addEventListener("change", () => renameSession(title, preview));
+    title.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") title.blur();
+    });
+    card.append(title, preview);
+    container.append(card);
+    fitTerminalPreview(preview);
+  });
+
+  const startCard = document.createElement("button");
+  startCard.className = "console-session-card start-session";
+  startCard.type = "button";
+  startCard.textContent = "Start new";
+  startCard.addEventListener("click", () => openTerminal());
+  container.append(startCard);
+}
+
+function fitTerminalPreview(preview) {
+  const lines = preview.textContent.split("\n");
+  const widestLine = Math.max(...lines.map((line) => line.length), 1);
+  const fontSize = Math.max(3, Math.min(11, (preview.clientWidth - 20) / (widestLine * 0.62), (preview.clientHeight - 20) / (lines.length * 1.2)));
+  preview.style.fontSize = `${fontSize}px`;
+}
+
+async function renameSession(title, preview) {
+  const oldName = title.dataset.session;
+  const newName = title.value.trim();
+  if (newName === oldName) return;
+  const response = await fetch("/api/console/sessions/rename", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldName, newName }),
+  });
+  if (!response.ok) {
+    title.value = oldName;
+    document.querySelector("#console-status").textContent = await response.text();
+    return;
+  }
+  title.dataset.session = newName;
+}
+
+function openTerminal(session) {
+  const status = document.querySelector("#console-status");
+  const sessions = document.querySelector("#console-sessions");
+  const terminalElement = document.querySelector("#terminal");
+  document.querySelector(".console-toolbar strong").hidden = true;
+  status.hidden = true;
+  sessions.hidden = true;
+  terminalElement.hidden = false;
+
+  terminal = new Terminal({ cursorBlink: true, fontFamily: "monospace", fontSize: 15, theme: { background: "#111", foreground: "#f5f5f5" } });
+  terminalFit = new FitAddon.FitAddon();
+  terminal.loadAddon(terminalFit);
+  terminal.open(terminalElement);
+  terminalFit.fit();
+  terminalResizeObserver = new ResizeObserver(() => terminalFit?.fit());
+  terminalResizeObserver.observe(terminalElement);
+  requestAnimationFrame(() => terminalFit?.fit());
+  terminal.focus();
+  const protocol = location.protocol === "https:" ? "wss" : "ws";
+  terminalSocket = new WebSocket(`${protocol}://${location.host}/api/console/terminal${session ? `?session=${encodeURIComponent(session)}` : ""}`);
+  terminalSocket.binaryType = "arraybuffer";
+  terminalSocket.addEventListener("open", () => {
+    terminalSocket.send(JSON.stringify({ type: "resize", cols: terminal.cols, rows: terminal.rows }));
+  });
+  terminalSocket.addEventListener("message", (event) => {
+    const output = typeof event.data === "string" ? event.data : new TextDecoder().decode(event.data);
+    terminal.write(output);
+  });
+  terminalSocket.addEventListener("close", () => terminal?.write("\r\n\x1b[31mSSH connection closed.\x1b[0m\r\n"));
+  terminal.onData((data) => terminalSocket?.readyState === WebSocket.OPEN && terminalSocket.send(JSON.stringify({ type: "input", data })));
+  terminal.onResize(({ cols, rows }) => terminalSocket?.readyState === WebSocket.OPEN && terminalSocket.send(JSON.stringify({ type: "resize", cols, rows })));
+}
+
+function closeTerminal() {
+  terminalSocket?.close();
+  terminalSocket = undefined;
+  terminal?.dispose();
+  terminal = undefined;
+  terminalResizeObserver?.disconnect();
+  terminalResizeObserver = undefined;
+  terminalFit = undefined;
+}
+
+window.addEventListener("resize", () => terminalFit?.fit());
 
 async function loadAccount() {
   const response = await fetch("/api/me");

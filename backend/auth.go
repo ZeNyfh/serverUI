@@ -2,16 +2,18 @@ package main
 
 import (
 	"crypto/rand"
-	"encoding/hex"
+	"crypto/sha256"
+	"encoding/base64"
 	"net/http"
-	"sync"
+	"time"
 )
 
 type app struct {
-	users    *userStore
-	allowed  map[int64]struct{}
-	sessions map[string]int64
-	mu       sync.RWMutex
+	users              *userStore
+	allowed            map[int64]struct{}
+	consolePermissions map[string]map[int64]struct{}
+	ssh                *sshConnectionConfig
+	sessionTTL         time.Duration
 }
 
 func (a *app) isAuthenticated(r *http.Request) bool {
@@ -21,19 +23,47 @@ func (a *app) isAuthenticated(r *http.Request) bool {
 
 func (a *app) currentUserID(r *http.Request) (int64, bool) {
 	cookie, err := r.Cookie("session")
-	if err != nil {
+	if err != nil || cookie.Value == "" {
 		return 0, false
 	}
-
-	a.mu.RLock()
-	userID, ok := a.sessions[cookie.Value]
-	a.mu.RUnlock()
+	userID, ok := a.users.sessionUserID(r.Context(), hashSessionToken(cookie.Value), time.Now().Unix())
 	if !ok {
 		return 0, false
 	}
-
 	_, allowed := a.allowed[userID]
 	return userID, allowed
+}
+
+func (a *app) setSessionCookie(w http.ResponseWriter, r *http.Request, token string) {
+	// Remove the legacy Console password cookie from older deployments.
+	http.SetCookie(w, &http.Cookie{Name: "console_ssh_password", Value: "", Path: "/api/console/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0)})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int(a.sessionTTL.Seconds()),
+		Expires:  time.Now().Add(a.sessionTTL),
+	})
+}
+
+func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: "session", Value: "", Path: "/", HttpOnly: true, Secure: true, SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0)})
+}
+
+func newSessionToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
+}
+
+func hashSessionToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return base64.RawURLEncoding.EncodeToString(hash[:])
 }
 
 func (a *app) rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,10 +90,7 @@ func (a *app) settingsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "frontend/html/settings.html")
 }
 
-func newSessionToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(bytes), nil
+func sameOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	return origin == "" || origin == "http://"+r.Host || origin == "https://"+r.Host
 }
