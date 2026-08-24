@@ -89,7 +89,8 @@ body:not(.login-page) main {
   padding: 1rem;
 }
 
-#cards-container.console-active {
+#cards-container.console-active,
+#cards-container.embed-active {
   height: 100vh;
   min-height: 0;
   min-width: 0;
@@ -105,6 +106,24 @@ body:not(.login-page) main {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+.embed-view {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 2rem);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.embed-view iframe {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 0;
 }
 
 .console-toolbar {
@@ -227,6 +246,20 @@ body:not(.login-page) main {
   position: relative;
 }
 
+.immich-card {
+  background-color: white;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.immich-card::before {
+  display: none;
+}
+
+.immich-card span {
+  color: #222;
+}
+
 .sidebar-footer {
   margin-top: auto;
   display: grid;
@@ -235,7 +268,16 @@ body:not(.login-page) main {
 }
 
 #settings-panel {
-  padding: 1rem;
+  position: fixed;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1.5rem;
+  transform: translate(-50%, -50%);
+  border: 1px solid #777;
+  background: white;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 30%);
 }
 
 #settings-form {

@@ -16,6 +16,11 @@ const items = [
     name: "Console",
     image: "/assets/console.svg",
   },
+  {
+    id: "immich",
+    name: "Immich",
+    image: "/assets/immich.png",
+  },
 ];
 
 function renderItems() {
@@ -32,7 +37,7 @@ function renderItems() {
   cardsContainer.innerHTML = items
     .map(
       (item) => `
-        <button class="item-card" type="button" data-item="${item.id}" style="background-image: url('${item.image}')">
+        <button class="item-card ${item.id}-card" type="button" data-item="${item.id}" style="background-image: url('${item.image}')">
           <span>${item.name}</span>
         </button>`,
     )
@@ -45,6 +50,17 @@ function renderItems() {
 
 function selectItem(itemID) {
   if (itemID === "console") showConsole();
+  if (itemID === "immich") showImmich();
+}
+
+function showImmich() {
+  cardsContainer.classList.add("embed-active");
+  const immichURL = `https://${location.hostname}:2283`;
+  cardsContainer.innerHTML = `<section class="embed-view"><div class="console-toolbar"><button id="immich-back" type="button">Back</button><strong>Immich</strong></div><iframe src="${immichURL}" title="Immich" allow="fullscreen"></iframe></section>`;
+  document.querySelector("#immich-back").addEventListener("click", () => {
+    cardsContainer.classList.remove("embed-active");
+    renderItems();
+  });
 }
 
 async function showConsole() {
