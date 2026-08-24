@@ -18,8 +18,14 @@
       </header>
       <nav id="sidebar-items" class="sidebar-items" aria-label="Items"></nav>
       <div class="sidebar-footer">
-        <span id="username"></span>
-        <button id="settings-button" type="button">Settings</button>
+        <div class="profile-summary">
+          <img id="profile-image" src="/assets/profile-placeholder.svg" alt="Profile picture" />
+          <span id="username"></span>
+        </div>
+        <div class="sidebar-actions">
+          <button id="settings-button" type="button">Settings</button>
+          <button id="logout-button" type="button">Log out</button>
+        </div>
       </div>
     </aside>
     <main>
