@@ -63,6 +63,12 @@ aside {
   object-fit: contain;
 }
 
+.sidebar-item .openwebui-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  object-fit: contain;
+}
+
 header {
   height: 7.5vh;
   display: flex;
@@ -256,6 +262,9 @@ body:not(.login-page) main {
 
 .item-card span {
   position: relative;
+  color: white;
+  -webkit-text-stroke: 2px black;
+  paint-order: stroke fill;
 }
 
 .immich-card {
@@ -276,6 +285,16 @@ body:not(.login-page) main {
 
 .beszel-card span {
   color: #222;
+}
+
+.openwebui-card {
+  background-color: #111827;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.openwebui-card::before {
+  display: none;
 }
 
 .immich-card::before {

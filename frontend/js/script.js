@@ -28,6 +28,11 @@ const items = [
     name: "Beszel",
     image: "/assets/beszel.svg",
   },
+  {
+    id: "openwebui",
+    name: "Open WebUI",
+    image: "/assets/openwebui.png",
+  },
 ];
 
 function renderItems() {
@@ -59,6 +64,17 @@ function selectItem(itemID) {
   if (itemID === "console") showConsole();
   if (itemID === "immich") showImmich();
   if (itemID === "beszel") showBeszel();
+  if (itemID === "openwebui") showOpenWebUI();
+}
+
+function showOpenWebUI() {
+  cardsContainer.classList.add("embed-active");
+  const openWebUIURL = `https://${location.hostname}:3000`;
+  cardsContainer.innerHTML = `<section class="embed-view"><div class="console-toolbar"><button id="openwebui-back" type="button">Back</button><strong>Open WebUI</strong></div><iframe src="${openWebUIURL}" title="Open WebUI" allow="fullscreen"></iframe></section>`;
+  document.querySelector("#openwebui-back").addEventListener("click", () => {
+    cardsContainer.classList.remove("embed-active");
+    renderItems();
+  });
 }
 
 function showBeszel() {
