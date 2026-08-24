@@ -3,16 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>serverUI</title>
+    <title>Lentron</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
     <link rel="stylesheet" href="/css/style.css" />
   </head>
   <body>
     <aside>
       <header>
-        <h1>serverUI</h1>
+        <a class="brand" href="/">
+          <img src="/assets/favicon.png" alt="" />
+          <span>Lentron</span>
+        </a>
       </header>
+      <nav id="sidebar-items" class="sidebar-items" aria-label="Items"></nav>
+      <div class="sidebar-footer">
+        <span id="username"></span>
+        <button id="settings-button" type="button">Settings</button>
+      </div>
     </aside>
-    <main></main>
+    <main>
+      <section id="cards-container" aria-label="Items"></section>
+      <div id="settings-container"></div>
+    </main>
     <script src="/js/script.js"></script>
   </body>
 </html>
