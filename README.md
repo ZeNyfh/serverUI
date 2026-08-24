@@ -28,6 +28,7 @@ credentials on the server; they are never sent to the browser.
 ./start.sh
 ```
 
-This starts Tailscale, shares Lentron privately over HTTPS, and starts the app.
+This starts Tailscale, shares Lentron privately over HTTPS in the background,
+and starts the app.
 It also shares a local Immich instance at port 2283 for the Immich embed. Use
 `tailscale serve status` to find the URL to open on another device.
