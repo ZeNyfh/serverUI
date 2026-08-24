@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -149,6 +150,62 @@ func (a *app) updateAccountHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *app) uploadProfileImageHandler(w http.ResponseWriter, r *http.Request) {
+	if !sameOrigin(r) {
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
+	userID, ok := a.currentUserID(r)
+	if !ok {
+		http.Error(w, "login failed", http.StatusUnauthorized)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 5<<20)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		http.Error(w, "profile image must be 5 MB or smaller", http.StatusBadRequest)
+		return
+	}
+	file, _, err := r.FormFile("profileImage")
+	if err != nil {
+		http.Error(w, "profile image is required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	image, err := io.ReadAll(file)
+	if err != nil || len(image) == 0 {
+		http.Error(w, "could not read profile image", http.StatusBadRequest)
+		return
+	}
+	contentType := http.DetectContentType(image)
+	switch contentType {
+	case "image/jpeg", "image/png", "image/gif", "image/webp":
+	default:
+		http.Error(w, "profile image must be PNG, JPEG, GIF, or WebP", http.StatusBadRequest)
+		return
+	}
+	if err := a.users.updateProfileImage(r.Context(), userID, image, contentType); err != nil {
+		http.Error(w, "could not save profile image", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *app) profileImageHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := a.currentUserID(r)
+	if !ok {
+		http.Error(w, "login failed", http.StatusUnauthorized)
+		return
+	}
+	image, contentType, err := a.users.profileImage(r.Context(), userID)
+	if err != nil || len(image) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "private, max-age=300")
+	_, _ = w.Write(image)
 }
 
 func decodeCredentials(w http.ResponseWriter, r *http.Request, input *credentials) bool {

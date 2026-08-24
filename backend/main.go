@@ -37,6 +37,8 @@ func main() {
 	mux.HandleFunc("POST /api/logout", app.logoutHandler)
 	mux.HandleFunc("GET /api/me", app.currentUserHandler)
 	mux.HandleFunc("PUT /api/account", app.updateAccountHandler)
+	mux.HandleFunc("POST /api/profile-image", app.uploadProfileImageHandler)
+	mux.HandleFunc("GET /api/profile-image", app.profileImageHandler)
 	mux.HandleFunc("POST /api/console/sessions", app.consoleSessionsHandler)
 	mux.HandleFunc("POST /api/console/sessions/rename", app.renameConsoleSessionHandler)
 	mux.HandleFunc("GET /api/console/terminal", app.consoleTerminalHandler)
