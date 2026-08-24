@@ -1,3 +1,19 @@
 allowed_users:
   - 1
   - 2
+session_ttl_hours: 24
+
+ssh:
+  machine_id: local
+  host: 127.0.0.1
+  port: 22
+  user: zenyfh
+  agent_socket: /run/user/1000/keyring/ssh
+  known_hosts_path: /home/zenyfh/.ssh/known_hosts
+  host_key_algorithms:
+    - ssh-ed25519
+
+console_permissions:
+  local:
+    - 1
+    - 2
