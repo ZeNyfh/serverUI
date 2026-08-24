@@ -23,6 +23,11 @@ const items = [
     name: "Immich",
     image: "/assets/immich.png",
   },
+  {
+    id: "beszel",
+    name: "Beszel",
+    image: "/assets/beszel.svg",
+  },
 ];
 
 function renderItems() {
@@ -30,7 +35,7 @@ function renderItems() {
     .map(
       (item) => `
         <button class="sidebar-item" type="button" data-item="${item.id}">
-          <img src="${item.image}" alt="" />
+          <img class="${item.id}-icon" src="${item.image}" alt="" />
           <span>${item.name}</span>
         </button>`,
     )
@@ -53,6 +58,17 @@ function renderItems() {
 function selectItem(itemID) {
   if (itemID === "console") showConsole();
   if (itemID === "immich") showImmich();
+  if (itemID === "beszel") showBeszel();
+}
+
+function showBeszel() {
+  cardsContainer.classList.add("embed-active");
+  const beszelURL = `https://${location.hostname}:8090`;
+  cardsContainer.innerHTML = `<section class="embed-view"><div class="console-toolbar"><button id="beszel-back" type="button">Back</button><strong>Beszel</strong></div><iframe src="${beszelURL}" title="Beszel" allow="fullscreen"></iframe></section>`;
+  document.querySelector("#beszel-back").addEventListener("click", () => {
+    cardsContainer.classList.remove("embed-active");
+    renderItems();
+  });
 }
 
 function showImmich() {

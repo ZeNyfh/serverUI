@@ -51,6 +51,10 @@ aside {
   object-fit: cover;
 }
 
+.sidebar-item .beszel-icon {
+  object-fit: contain;
+}
+
 header {
   height: 7.5vh;
   display: flex;
@@ -250,6 +254,20 @@ body:not(.login-page) main {
   background-color: white;
   background-repeat: no-repeat;
   background-size: contain;
+}
+
+.beszel-card {
+  background-color: white;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.beszel-card::before {
+  display: none;
+}
+
+.beszel-card span {
+  color: #222;
 }
 
 .immich-card::before {
