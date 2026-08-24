@@ -1,10 +1,12 @@
 const username = document.querySelector("#username");
 const settingsButton = document.querySelector("#settings-button");
+const logoutButton = document.querySelector("#logout-button");
 const sidebarItems = document.querySelector("#sidebar-items");
 const cardsContainer = document.querySelector("#cards-container");
 let settingsPanel;
 let settingsUsername;
 let settingsMessage;
+let profileImageMessage;
 let terminal;
 let terminalSocket;
 let terminalFit;
@@ -209,6 +211,16 @@ async function loadAccount() {
   const account = await response.json();
   username.textContent = account.username;
   if (settingsUsername) settingsUsername.value = account.username;
+  loadProfileImage();
+}
+
+function loadProfileImage() {
+  const image = document.querySelector("#profile-image");
+  image.onerror = () => {
+    image.onerror = null;
+    image.src = "/assets/profile-placeholder.svg";
+  };
+  image.src = `/api/profile-image?updated=${Date.now()}`;
 }
 
 async function showSettings() {
@@ -225,9 +237,11 @@ async function showSettings() {
   settingsPanel.hidden = false;
   settingsUsername = document.querySelector("#settings-username");
   settingsMessage = document.querySelector("#settings-message");
+  profileImageMessage = document.querySelector("#profile-image-message");
 
   document.querySelector("#settings-back").addEventListener("click", renderItems);
   document.querySelector("#settings-form").addEventListener("submit", updateAccount);
+  document.querySelector("#profile-image-form").addEventListener("submit", uploadProfileImage);
   loadAccount();
 }
 
@@ -254,9 +268,28 @@ async function updateAccount(event) {
   loadAccount();
 }
 
+async function uploadProfileImage(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const response = await fetch("/api/profile-image", { method: "POST", body: new FormData(form) });
+  if (!response.ok) {
+    profileImageMessage.textContent = await response.text();
+    return;
+  }
+  form.reset();
+  profileImageMessage.textContent = "Profile picture updated.";
+  loadProfileImage();
+}
+
+async function logout() {
+  const response = await fetch("/api/logout", { method: "POST" });
+  if (response.ok) window.location.reload();
+}
+
 async function initialize() {
   renderItems();
   settingsButton.addEventListener("click", showSettings);
+  logoutButton.addEventListener("click", logout);
   await loadAccount();
 }
 
