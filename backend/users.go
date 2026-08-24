@@ -34,6 +34,16 @@ func openUserStore(path string) (*userStore, error) {
 		db.Close()
 		return nil, err
 	}
+	// Existing installations receive these columns without needing a separate migration tool.
+	for _, statement := range []string{
+		"ALTER TABLE users ADD COLUMN profile_image BLOB",
+		"ALTER TABLE users ADD COLUMN profile_image_type TEXT",
+	} {
+		if _, err := db.Exec(statement); err != nil && !strings.Contains(err.Error(), "duplicate column name") {
+			db.Close()
+			return nil, err
+		}
+	}
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS sessions (
 			token_hash TEXT PRIMARY KEY,
@@ -50,6 +60,18 @@ func openUserStore(path string) (*userStore, error) {
 	}
 
 	return &userStore{db: db}, nil
+}
+
+func (s *userStore) updateProfileImage(ctx context.Context, id int64, image []byte, contentType string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE users SET profile_image = ?, profile_image_type = ? WHERE id = ?", image, contentType, id)
+	return err
+}
+
+func (s *userStore) profileImage(ctx context.Context, id int64) ([]byte, string, error) {
+	var image []byte
+	var contentType sql.NullString
+	err := s.db.QueryRowContext(ctx, "SELECT profile_image, profile_image_type FROM users WHERE id = ?", id).Scan(&image, &contentType)
+	return image, contentType.String, err
 }
 
 func (s *userStore) createSession(ctx context.Context, tokenHash string, userID int64, createdAt, expiresAt int64) error {
