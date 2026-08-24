@@ -208,27 +208,27 @@ async function loadAccount() {
 
   const account = await response.json();
   username.textContent = account.username;
-  settingsUsername.value = account.username;
+  if (settingsUsername) settingsUsername.value = account.username;
 }
 
-async function loadSettingsPanel() {
+async function showSettings() {
+  if (terminal) closeTerminal();
+  cardsContainer.classList.remove("console-active", "embed-active");
   const response = await fetch("/settings.html");
   if (!response.ok) {
     window.location.reload();
     return;
   }
 
-  document.querySelector("#settings-container").innerHTML = await response.text();
+  cardsContainer.innerHTML = `<section class="settings-view"><div class="console-toolbar"><button id="settings-back" type="button">Back</button><strong>Settings</strong></div>${await response.text()}</section>`;
   settingsPanel = document.querySelector("#settings-panel");
+  settingsPanel.hidden = false;
   settingsUsername = document.querySelector("#settings-username");
   settingsMessage = document.querySelector("#settings-message");
 
-  settingsButton.addEventListener("click", () => {
-    settingsPanel.hidden = !settingsPanel.hidden;
-    settingsMessage.textContent = "";
-  });
-
+  document.querySelector("#settings-back").addEventListener("click", renderItems);
   document.querySelector("#settings-form").addEventListener("submit", updateAccount);
+  loadAccount();
 }
 
 async function updateAccount(event) {
@@ -256,7 +256,7 @@ async function updateAccount(event) {
 
 async function initialize() {
   renderItems();
-  await loadSettingsPanel();
+  settingsButton.addEventListener("click", showSettings);
   await loadAccount();
 }
 

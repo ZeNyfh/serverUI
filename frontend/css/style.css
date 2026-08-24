@@ -268,16 +268,11 @@ body:not(.login-page) main {
 }
 
 #settings-panel {
-  position: fixed;
-  z-index: 10;
-  top: 50%;
-  left: 50%;
-  width: min(24rem, calc(100vw - 2rem));
-  padding: 1.5rem;
-  transform: translate(-50%, -50%);
-  border: 1px solid #777;
-  background: white;
-  box-shadow: 0 1rem 3rem rgb(0 0 0 / 30%);
+  padding: 1rem;
+}
+
+.settings-view {
+  grid-column: 1 / -1;
 }
 
 #settings-form {
