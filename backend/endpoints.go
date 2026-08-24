@@ -12,6 +12,12 @@ type credentials struct {
 	Password string `json:"password"`
 }
 
+type accountUpdate struct {
+	Username        string `json:"username"`
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
+}
+
 func (s *userStore) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	var input credentials
 	if !decodeCredentials(w, r, &input) {
@@ -68,6 +74,57 @@ func (a *app) loginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *app) currentUserHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := a.currentUserID(r)
+	if !ok {
+		http.Error(w, "login failed", http.StatusUnauthorized)
+		return
+	}
+
+	username, err := a.users.username(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "could not load account", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"username": username})
+}
+
+func (a *app) updateAccountHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := a.currentUserID(r)
+	if !ok {
+		http.Error(w, "login failed", http.StatusUnauthorized)
+		return
+	}
+
+	var input accountUpdate
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if input.CurrentPassword == "" {
+		http.Error(w, "current password is required", http.StatusBadRequest)
+		return
+	}
+
+	err := a.users.updateAccount(r.Context(), userID, input.Username, input.CurrentPassword, input.NewPassword)
+	if errors.Is(err, ErrCurrentPassword) {
+		http.Error(w, "current password is incorrect", http.StatusUnauthorized)
+		return
+	}
+	if errors.Is(err, ErrUsernameTaken) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	if err != nil {
+		http.Error(w, "could not update account", http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
